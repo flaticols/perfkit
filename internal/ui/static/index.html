@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>perfkit</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1><a href="/">perfkit</a></h1>
+            <div id="header-profile" class="header-profile" hidden>
+                <span id="header-profile-name"></span>
+                <span id="header-profile-type" class="tag"></span>
+                <span class="header-meta">
+                    <span id="header-profile-project"></span>
+                    <span id="header-profile-time"></span>
+                </span>
+            </div>
+            <div id="status" class="collector-status">
+                <span class="status-indicator active"></span>
+                <span>Listening on port 8080</span>
+            </div>
+        </header>
+        <main id="main-content">
+            <!-- Content loaded by router -->
+        </main>
+    </div>
+
+    <template id="dashboard-template">
+        <section class="recent-profiles">
+            <div class="dashboard-header">
+                <h2>Recent Profiles</h2>
+                <select id="project-filter" class="project-filter">
+                    <option value="">All projects</option>
+                </select>
+            </div>
+            <div id="profiles-container"></div>
+        </section>
+        <div id="compare-bar" class="compare-bar" hidden>
+            <span id="compare-count">0 selected</span>
+            <button id="compare-btn" class="btn" disabled>Compare</button>
+            <button id="clear-selection-btn" class="btn-secondary">Clear</button>
+        </div>
+    </template>
+
+    <template id="session-template">
+        <details class="session-group" open>
+            <summary class="session-header"></summary>
+            <div class="session-profiles"></div>
+        </details>
+    </template>
+
+    <template id="profile-row-template">
+        <div class="profile-row" data-id="" data-type="">
+            <input type="checkbox" class="profile-checkbox">
+            <a class="profile-name" href=""></a>
+            <span class="profile-time"></span>
+            <span class="profile-type tag"></span>
+            <span class="profile-project"></span>
+            <span class="profile-source"></span>
+            <span class="profile-size"></span>
+        </div>
+    </template>
+
+    <template id="profile-template">
+        <section class="profile-detail">
+            <div class="type-metrics" id="type-metrics"></div>
+            <div class="top-functions" id="top-functions" hidden>
+                <h3 id="top-functions-title">Top Functions</h3>
+                <div class="functions-list" id="functions-list"></div>
+            </div>
+            <dl class="profile-meta" id="profile-meta-extra">
+                <div class="profile-meta-item" id="session-item" hidden>
+                    <dt>Session</dt>
+                    <dd id="profile-session"></dd>
+                </div>
+                <div class="profile-meta-item" id="source-item">
+                    <dt>Source</dt>
+                    <dd id="profile-source"></dd>
+                </div>
+            </dl>
+            <div class="pprof-command">
+                <h3>Open with pprof</h3>
+                <code id="pprof-cmd"></code>
+            </div>
+            <details class="profile-metrics">
+                <summary>Raw Metrics JSON</summary>
+                <pre id="profile-metrics-data"></pre>
+            </details>
+            <div class="profile-actions">
+                <a id="download-link" class="download-link" download>Download raw profile (.pb.gz)</a>
+            </div>
+        </section>
+    </template>
+
+    <template id="compare-template">
+        <section class="compare-view">
+            <div class="compare-header">
+                <h2>Compare <span id="compare-type-label"></span> Profiles</h2>
+                <div class="compare-view-toggle">
+                    <button class="view-btn active" data-view="table">Table</button>
+                    <button class="view-btn" data-view="timeline">Timeline</button>
+                </div>
+            </div>
+            <div id="compare-content"></div>
+        </section>
+    </template>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
