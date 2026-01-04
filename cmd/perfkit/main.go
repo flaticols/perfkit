@@ -224,6 +224,26 @@ EXAMPLE: K6 LOAD TESTING
     # See performance improvements: P95, P99, RPS, error rate changes
 
 
+STEP 5: BROWSE SESSIONS AND PROFILES (CLI)
+------------------------------------------
+
+List all sessions:
+
+    perfkit session ls
+
+List profiles in a specific session:
+
+    perfkit session profiles my-session
+
+Get a specific profile (JSON metadata):
+
+    perfkit get my-session <profile-id>
+
+Get raw profile data:
+
+    perfkit get my-session <profile-id> --raw > profile.pb.gz
+
+
 API ENDPOINTS
 -------------
 
@@ -238,8 +258,10 @@ API ENDPOINTS
 MORE INFO
 ---------
 
-    perfkit server --help     Server options
-    perfkit capture --help    Capture options
+    perfkit server --help      Server options
+    perfkit capture --help     Capture options
+    perfkit session --help     Session management
+    perfkit get --help         Get profile data
 
     GitHub: https://github.com/flaticols/perfkit
 
