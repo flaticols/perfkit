@@ -32,6 +32,7 @@ func (s *Server) Start() error {
 
 	// API routes
 	mux.HandleFunc("POST /api/pprof/ingest", s.handlePprofIngest)
+	mux.HandleFunc("POST /api/k6/ingest", s.handleK6Ingest)
 	mux.HandleFunc("GET /api/profiles", s.handleListProfiles)
 	mux.HandleFunc("GET /api/profiles/compare", s.handleCompareProfiles)
 	mux.HandleFunc("GET /api/profiles/{id}", s.handleGetProfile)

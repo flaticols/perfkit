@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flaticols/perfkit/internal/k6"
 	"github.com/flaticols/perfkit/internal/models"
 	"github.com/flaticols/perfkit/internal/pprof"
 	"github.com/google/uuid"
@@ -209,4 +210,89 @@ func (s *Server) handleCompareProfiles(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profiles)
+}
+
+func (s *Server) handleK6Ingest(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Parse k6 summary JSON
+	parsed, err := k6.Parse(body)
+	if err != nil {
+		http.Error(w, "Failed to parse k6 summary: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Extract metadata from query params
+	project := r.URL.Query().Get("project")
+	if project == "" {
+		project = s.cfg.Project
+	}
+
+	session := r.URL.Query().Get("session")
+	source := r.URL.Query().Get("source")
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		name = "k6-" + time.Now().Format("20060102-150405")
+	}
+
+	// Build profile record
+	now := time.Now()
+	profile := &models.Profile{
+		ID:          uuid.New().String(),
+		CreatedAt:   now,
+		UpdatedAt:   now,
+		Name:        name,
+		ProfileType: models.ProfileTypeK6,
+		Project:     project,
+		Session:     session,
+		Source:      source,
+		RawData:     body,
+		RawSize:     len(body),
+		ProfileTime: &now,
+		DurationNS:  parsed.DurationMS * 1_000_000, // Convert ms to ns
+	}
+
+	// Set k6 quick-access fields
+	if parsed.Metrics != nil {
+		if parsed.Metrics.P95 > 0 {
+			profile.K6P95 = &parsed.Metrics.P95
+		}
+		if parsed.Metrics.P99 > 0 {
+			profile.K6P99 = &parsed.Metrics.P99
+		}
+		if parsed.Metrics.RPS > 0 {
+			profile.K6RPS = &parsed.Metrics.RPS
+		}
+		profile.K6ErrorRate = &parsed.Metrics.ErrorRate
+		if parsed.DurationMS > 0 {
+			profile.K6DurationMS = &parsed.DurationMS
+		}
+
+		// Marshal metrics
+		metricsJSON, err := json.Marshal(parsed.Metrics)
+		if err == nil {
+			profile.Metrics = metricsJSON
+		}
+	}
+
+	// Handle tags
+	tags := r.URL.Query()["tag"]
+	profile.Tags = append(s.cfg.DefaultTags, tags...)
+
+	if err := s.store.SaveProfile(r.Context(), profile); err != nil {
+		log.Printf("Failed to save k6 profile: %v", err)
+		http.Error(w, "Failed to save profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"id":      profile.ID,
+		"message": "K6 profile ingested successfully",
+	})
 }
