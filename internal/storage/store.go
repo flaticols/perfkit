@@ -157,3 +157,35 @@ func (s *Store) ListProfiles(ctx context.Context, limit, offset int, profileType
 
 	return profiles, nil
 }
+
+func (s *Store) ListSessions(ctx context.Context) ([]string, error) {
+	var sessions []string
+	query := `SELECT DISTINCT session FROM profiles WHERE session IS NOT NULL AND session != '' ORDER BY session`
+	if err := s.db.SelectContext(ctx, &sessions, query); err != nil {
+		return nil, err
+	}
+	return sessions, nil
+}
+
+func (s *Store) ListProfilesBySession(ctx context.Context, session string) ([]*models.Profile, error) {
+	ds := s.goqu.From("profiles").
+		Select("id", "created_at", "updated_at", "name", "profile_type", "project", "session", "tags", "source", "raw_size", "is_cumulative", "profile_time", "duration_ns", "total_samples", "total_value", "k6_p95", "k6_p99", "k6_rps", "k6_error_rate", "k6_duration_ms").
+		Where(goqu.I("session").Eq(session)).
+		Order(goqu.I("created_at").Desc())
+
+	query, args, err := ds.ToSQL()
+	if err != nil {
+		return nil, err
+	}
+
+	var profiles []*models.Profile
+	if err := s.db.SelectContext(ctx, &profiles, query, args...); err != nil {
+		return nil, err
+	}
+
+	for _, p := range profiles {
+		_ = p.UnmarshalTags()
+	}
+
+	return profiles, nil
+}

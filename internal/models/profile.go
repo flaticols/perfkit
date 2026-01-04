@@ -1,9 +1,53 @@
 package models
 
 import (
+	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"time"
 )
+
+// NullableJSON represents a json.RawMessage that can be NULL in the database
+type NullableJSON json.RawMessage
+
+func (n *NullableJSON) Scan(value interface{}) error {
+	if value == nil {
+		*n = nil
+		return nil
+	}
+	switch v := value.(type) {
+	case []byte:
+		*n = NullableJSON(v)
+	case string:
+		*n = NullableJSON(v)
+	default:
+		return fmt.Errorf("unsupported type for NullableJSON: %T", value)
+	}
+	return nil
+}
+
+func (n NullableJSON) Value() (driver.Value, error) {
+	if n == nil {
+		return nil, nil
+	}
+	return []byte(n), nil
+}
+
+func (n NullableJSON) MarshalJSON() ([]byte, error) {
+	if n == nil {
+		return []byte("null"), nil
+	}
+	return json.RawMessage(n).MarshalJSON()
+}
+
+func (n *NullableJSON) UnmarshalJSON(data []byte) error {
+	if data == nil || string(data) == "null" {
+		*n = nil
+		return nil
+	}
+	*n = NullableJSON(data)
+	return nil
+}
 
 type ProfileType string
 
@@ -66,7 +110,7 @@ type Profile struct {
 	ProfileTime *time.Time `db:"profile_time" json:"profile_time,omitempty"`
 	DurationNS  int64      `db:"duration_ns" json:"duration_ns,omitempty"`
 
-	Metrics json.RawMessage `db:"metrics" json:"metrics"`
+	Metrics NullableJSON `db:"metrics" json:"metrics"`
 
 	// pprof quick-access fields
 	TotalSamples *int64 `db:"total_samples" json:"total_samples,omitempty"`

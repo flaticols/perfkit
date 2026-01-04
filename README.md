@@ -107,6 +107,60 @@ perfkit capture http://localhost:6060 --cpu-duration 10s
 perfkit capture http://localhost:6060 --server http://perfkit.prod:8080
 ```
 
+### `perfkit session`
+
+Manage and browse sessions.
+
+```bash
+# List all sessions
+perfkit session ls
+
+# List profiles in a specific session
+perfkit session profiles <session-name>
+```
+
+**Examples:**
+
+```bash
+# List all sessions
+perfkit session ls
+# Output:
+# load-test
+# monitoring
+# my-session
+
+# List profiles in a session
+perfkit session profiles load-test
+# Output:
+# abc123  heap      2026-01-04 22:38:25  heap-profile
+# def456  cpu       2026-01-04 22:38:30  cpu-profile
+```
+
+### `perfkit get`
+
+Retrieve a specific profile from a session.
+
+```bash
+perfkit get [OPTIONS] <session> <profile_id>
+
+Arguments:
+  session        Session name
+  profile_id     Profile ID
+
+Options:
+      --raw      Return raw profile data (binary)
+```
+
+**Examples:**
+
+```bash
+# Get profile metadata as JSON
+perfkit get my-session abc123
+
+# Get raw profile data and save to file
+perfkit get my-session abc123 --raw > profile.pb.gz
+```
+
 ## Profile Types
 
 ### Go pprof Profiles
