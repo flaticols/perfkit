@@ -213,12 +213,13 @@ func (s *Server) handleCompareProfiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleK6Ingest(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read body", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
 
 	// Parse k6 summary JSON
 	parsed, err := k6.Parse(body)

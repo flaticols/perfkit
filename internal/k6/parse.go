@@ -110,11 +110,7 @@ func Parse(data []byte) (*ParsedK6, error) {
 	} else if metric, ok := summary.Metrics["checks"]; ok {
 		// Fallback: use check failure rate as error rate
 		if vals := metric.Values; vals != nil {
-			if rate, ok := vals["rate"].(float64); ok {
-				// rate is success rate (0-1), error rate is 1 - rate
-				result.Metrics.ErrorRate = 1.0 - rate
-			}
-			// If we have passes and fails, calculate directly
+			// Prefer calculating from passes/fails if available (more accurate)
 			if passes, pok := vals["passes"].(float64); pok {
 				if fails, fok := vals["fails"].(float64); fok {
 					total := passes + fails
@@ -122,6 +118,10 @@ func Parse(data []byte) (*ParsedK6, error) {
 						result.Metrics.ErrorRate = fails / total
 					}
 				}
+			} else if rate, ok := vals["rate"].(float64); ok {
+				// Fallback: derive from success rate
+				// rate is success rate (0-1), error rate is 1 - rate
+				result.Metrics.ErrorRate = 1.0 - rate
 			}
 		}
 	}
