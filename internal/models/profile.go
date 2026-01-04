@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -19,6 +20,8 @@ func (n *NullableJSON) Scan(value interface{}) error {
 		*n = NullableJSON(v)
 	case string:
 		*n = NullableJSON(v)
+	default:
+		return fmt.Errorf("unsupported type for NullableJSON: %T", value)
 	}
 	return nil
 }
