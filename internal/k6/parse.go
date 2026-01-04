@@ -95,9 +95,20 @@ func Parse(data []byte) (*ParsedK6, error) {
 		}
 	}
 
-	// Calculate error rate from checks if available
-	// k6's check success rate can be used to derive error rate
-	if metric, ok := summary.Metrics["checks"]; ok {
+	// Extract error rate - prefer http_req_failed metric as it's more accurate for HTTP tests
+	// If not available, fall back to checks metric
+	if metric, ok := summary.Metrics["http_req_failed"]; ok {
+		if vals := metric.Values; vals != nil {
+			if rate, ok := vals["rate"].(float64); ok {
+				result.Metrics.ErrorRate = rate
+			}
+			// Count of failed requests
+			if count, ok := vals["count"].(float64); ok {
+				result.Metrics.FailedRequests = int64(count)
+			}
+		}
+	} else if metric, ok := summary.Metrics["checks"]; ok {
+		// Fallback: use check failure rate as error rate
 		if vals := metric.Values; vals != nil {
 			if rate, ok := vals["rate"].(float64); ok {
 				// rate is success rate (0-1), error rate is 1 - rate
@@ -111,18 +122,6 @@ func Parse(data []byte) (*ParsedK6, error) {
 						result.Metrics.ErrorRate = fails / total
 					}
 				}
-			}
-		}
-	}
-
-	// If we have http_req_failed metric, use that for error rate
-	if metric, ok := summary.Metrics["http_req_failed"]; ok {
-		if vals := metric.Values; vals != nil {
-			if rate, ok := vals["rate"].(float64); ok {
-				result.Metrics.ErrorRate = rate
-			}
-			if fails, ok := vals["passes"].(float64); ok {
-				result.Metrics.FailedRequests = int64(fails)
 			}
 		}
 	}
