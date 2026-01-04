@@ -19,9 +19,10 @@ import (
 )
 
 type Options struct {
-	Config  string     `short:"c" long:"config" description:"Config file path"`
-	Server  ServerCmd  `command:"server" alias:"s" description:"Start the collector server"`
-	Capture CaptureCmd `command:"capture" alias:"c" description:"Capture profiles from a pprof endpoint"`
+	Config     string        `short:"c" long:"config" description:"Config file path"`
+	Server     ServerCmd     `command:"server" alias:"s" description:"Start the collector server"`
+	Capture    CaptureCmd    `command:"capture" description:"Capture profiles from a pprof endpoint"`
+	Quickstart QuickstartCmd `command:"quickstart" alias:"q" description:"Show getting started guide"`
 }
 
 type ServerCmd struct {
@@ -50,6 +51,135 @@ type CaptureCmd struct {
 func (c *CaptureCmd) Execute(args []string) error {
 	return runCapture(c)
 }
+
+type QuickstartCmd struct{}
+
+func (c *QuickstartCmd) Execute(args []string) error {
+	fmt.Print(quickstartGuide)
+	return nil
+}
+
+const quickstartGuide = `
+PERFKIT QUICKSTART
+==================
+
+perfkit is a pprof profile collector and viewer for Go applications.
+
+
+STEP 1: ENABLE PPROF IN YOUR GO APP
+-----------------------------------
+
+Add this import to expose pprof endpoints:
+
+    import _ "net/http/pprof"
+
+    func main() {
+        // Start pprof server on a separate port
+        go func() {
+            http.ListenAndServe("localhost:6060", nil)
+        }()
+
+        // ... your application code
+    }
+
+Your app will expose profiles at http://localhost:6060/debug/pprof/
+
+
+STEP 2: START PERFKIT SERVER
+----------------------------
+
+In one terminal, start the perfkit server:
+
+    perfkit server
+
+Server runs at http://localhost:8080 with web UI for browsing profiles.
+
+Options:
+    --port 9090       Use different port
+    --pprof           Enable self-profiling endpoints
+
+
+STEP 3: CAPTURE PROFILES
+------------------------
+
+In another terminal, capture profiles from your running app:
+
+    # Capture all profile types once
+    perfkit capture http://localhost:6060
+
+    # Capture specific profiles
+    perfkit capture http://localhost:6060 --profiles heap,goroutine,cpu
+
+    # Capture with session name (groups profiles together)
+    perfkit capture http://localhost:6060 --session load-test
+
+    # Capture periodically every 30 seconds
+    perfkit capture http://localhost:6060 --interval 30s --session monitoring
+
+    # Capture 5 times with 10s interval
+    perfkit capture http://localhost:6060 --interval 10s --count 5
+
+
+STEP 4: VIEW AND COMPARE
+------------------------
+
+Open http://localhost:8080 in your browser to:
+
+    - Browse all captured profiles by session
+    - View profile details and metrics
+    - Select multiple profiles of same type to compare
+    - See deltas between profiles (memory growth, CPU changes)
+
+
+PROFILE TYPES
+-------------
+
+    cpu          CPU usage (sampled over --cpu-duration, default 30s)
+    heap         Memory allocations (current snapshot)
+    goroutine    Goroutine stacks (current snapshot)
+    block        Blocking operations (cumulative since app start)
+    mutex        Mutex contention (cumulative since app start)
+    allocs       All allocations (cumulative since app start)
+    threadcreate Thread creation stacks
+
+
+EXAMPLE: DEBUGGING MEMORY LEAK
+------------------------------
+
+    # Terminal 1: Start perfkit
+    perfkit server
+
+    # Terminal 2: Capture baseline
+    perfkit capture http://localhost:6060 --profiles heap --session memleak
+
+    # ... run your load test or reproduce the issue ...
+
+    # Terminal 2: Capture after load
+    perfkit capture http://localhost:6060 --profiles heap --session memleak
+
+    # Open http://localhost:8080, select both heap profiles, click Compare
+    # See memory growth with exact deltas
+
+
+API ENDPOINTS
+-------------
+
+    POST /api/pprof/ingest?type=heap&session=test    Ingest profile
+    GET  /api/profiles                                List profiles
+    GET  /api/profiles/{id}                           Get profile
+    GET  /api/profiles/{id}?raw=true                  Download raw pprof
+    GET  /api/profiles/compare?ids=id1,id2            Compare profiles
+
+
+MORE INFO
+---------
+
+    perfkit server --help     Server options
+    perfkit capture --help    Capture options
+
+    GitHub: https://github.com/flaticols/perfkit
+
+`
 
 var opts Options
 

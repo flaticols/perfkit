@@ -1,5 +1,5 @@
 # Binaries
-perfkit
+/perfkit
 *.exe
 
 # Data

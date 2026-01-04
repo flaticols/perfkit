@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>perfkit — pprof profile collector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-secondary: #f8f8f8;
+            --text: #0a0a0a;
+            --text-muted: #666666;
+            --border: #e0e0e0;
+            --code-bg: #f5f5f5;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0a0a0a;
+                --bg-secondary: #141414;
+                --text: #f5f5f5;
+                --text-muted: #888888;
+                --border: #2a2a2a;
+                --code-bg: #1a1a1a;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 18px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Newsreader', Georgia, serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 6rem 0 4rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 400;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+
+        .tagline {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            font-style: italic;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* Install */
+        .install {
+            margin: 3rem 0;
+            text-align: center;
+        }
+
+        .install code {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            padding: 1rem 2rem;
+            border-radius: 4px;
+        }
+
+        /* Sections */
+        section {
+            padding: 4rem 0;
+            border-top: 1px solid var(--border);
+        }
+
+        h2 {
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+
+        /* Features */
+        .features {
+            display: grid;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feature {
+            display: grid;
+            grid-template-columns: 2rem 1fr;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .feature-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding-top: 0.25rem;
+        }
+
+        .feature h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        /* Code blocks */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        pre code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .comment {
+            color: var(--text-muted);
+        }
+
+        /* Comparison visual */
+        .comparison {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+        }
+
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-row:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-header {
+            color: var(--text-muted);
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .delta-up {
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        footer p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--text);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+
+        footer a:hover {
+            border-color: var(--text);
+        }
+
+        /* Subtle grain texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body::before {
+                opacity: 0.03;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header, section, footer {
+            animation: fadeUp 0.6s ease-out both;
+        }
+
+        section:nth-child(2) { animation-delay: 0.1s; }
+        section:nth-child(3) { animation-delay: 0.2s; }
+        section:nth-child(4) { animation-delay: 0.3s; }
+        footer { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">perfkit</div>
+            <h1>Capture, store, compare Go profiles</h1>
+            <p class="tagline">A minimal pprof collector with a clean web interface. Zero dependencies beyond SQLite.</p>
+            <div class="install">
+                <code>go install github.com/flaticols/perfkit/cmd/perfkit@latest</code>
+            </div>
+        </header>
+
+        <section>
+            <h2>Features</h2>
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-num">01</span>
+                    <div>
+                        <h3>Capture from any Go app</h3>
+                        <p>Connect to any application with pprof enabled. CPU, heap, goroutine, mutex, block profiles.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-num">02</span>
+                    <div>
+                        <h3>Web UI for browsing</h3>
+                        <p>Clean interface to browse profiles by session, project, or type. Dark mode included.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-num">03</span>
+                    <div>
+                        <h3>Compare with deltas</h3>
+                        <p>Select multiple profiles and see metric changes over time. Track regressions instantly.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-num">04</span>
+                    <div>
+                        <h3>Session grouping</h3>
+                        <p>Organize related profiles under sessions. Perfect for load tests or debugging sessions.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-num">05</span>
+                    <div>
+                        <h3>SQLite storage</h3>
+                        <p>Single file database. No external services. Just run the binary.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Quick start</h2>
+            <p>Start the server and begin capturing profiles in under a minute.</p>
+
+            <pre><code><span class="comment"># Start the server</span>
+perfkit server
+
+<span class="comment"># Capture profiles from your app</span>
+perfkit capture http://localhost:6060 --session load-test
+
+<span class="comment"># Or capture periodically</span>
+perfkit capture http://localhost:6060 --interval 30s</code></pre>
+
+            <p>Open <code>http://localhost:8080</code> to view profiles.</p>
+        </section>
+
+        <section>
+            <h2>Comparison</h2>
+            <p>Select profiles of the same type and compare key metrics with computed deltas.</p>
+
+            <div class="comparison">
+                <div class="comparison-row comparison-header">
+                    <span>Metric</span>
+                    <span>Before</span>
+                    <span>After</span>
+                </div>
+                <div class="comparison-row">
+                    <span>Alloc Size</span>
+                    <span>6.8 MB</span>
+                    <span>10.9 MB <span class="delta-up">+59%</span></span>
+                </div>
+                <div class="comparison-row">
+                    <span>Inuse Size</span>
+                    <span>5.4 MB</span>
+                    <span>6.9 MB <span class="delta-up">+28%</span></span>
+                </div>
+                <div class="comparison-row">
+                    <span>Goroutines</span>
+                    <span>24</span>
+                    <span>31 <span class="delta-up">+29%</span></span>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>Built for developers who care about performance.<br>
+            <a href="https://github.com/flaticols/perfkit">View on GitHub</a></p>
+        </footer>
+    </div>
+</body>
+</html>
