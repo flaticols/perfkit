@@ -314,7 +314,14 @@ function renderProfile(profile) {
     document.getElementById('header-profile-time').textContent = formatTime(profile.created_at);
 
     // Download link at bottom
-    document.getElementById('download-link').href = `/api/profiles/${profile.id}?raw=true`;
+    const downloadLink = document.getElementById('download-link');
+    downloadLink.href = `/api/profiles/${profile.id}?raw=true`;
+    // Update download link text based on profile type
+    if (profile.profile_type === 'k6') {
+        downloadLink.textContent = 'Download raw data (summary.json)';
+    } else {
+        downloadLink.textContent = 'Download raw profile (.pb.gz)';
+    }
 
     // Optional metadata
     document.getElementById('profile-source').textContent = profile.source || '—';
@@ -326,22 +333,30 @@ function renderProfile(profile) {
     // Type-specific metrics
     renderTypeMetrics(profile);
 
-    // pprof commands
-    const rawUrl = `${location.origin}/api/profiles/${profile.id}?raw=true`;
-    const cliCmd = `go tool pprof ${rawUrl}`;
-    const browserCmd = `go tool pprof -http=:8081 ${rawUrl}`;
-    document.getElementById('pprof-cmd').innerHTML = `
-        <div class="cmd-line">
-            <span class="cmd-label">CLI</span>
-            <code class="cmd-text">${cliCmd}</code>
-            <button class="cmd-copy" onclick="copyToClipboard('${cliCmd}', this)">Copy</button>
-        </div>
-        <div class="cmd-line">
-            <span class="cmd-label">Browser</span>
-            <code class="cmd-text">${browserCmd}</code>
-            <button class="cmd-copy" onclick="copyToClipboard('${browserCmd}', this)">Copy</button>
-        </div>
-    `;
+    // pprof commands (only for pprof profiles, not k6)
+    const pprofCommandSection = document.querySelector('.pprof-command');
+    if (profile.profile_type === 'k6') {
+        // Hide pprof commands for k6 profiles
+        pprofCommandSection.hidden = true;
+    } else {
+        // Show pprof commands for pprof profiles
+        pprofCommandSection.hidden = false;
+        const rawUrl = `${location.origin}/api/profiles/${profile.id}?raw=true`;
+        const cliCmd = `go tool pprof ${rawUrl}`;
+        const browserCmd = `go tool pprof -http=:8081 ${rawUrl}`;
+        document.getElementById('pprof-cmd').innerHTML = `
+            <div class="cmd-line">
+                <span class="cmd-label">CLI</span>
+                <code class="cmd-text">${cliCmd}</code>
+                <button class="cmd-copy" onclick="copyToClipboard('${cliCmd}', this)">Copy</button>
+            </div>
+            <div class="cmd-line">
+                <span class="cmd-label">Browser</span>
+                <code class="cmd-text">${browserCmd}</code>
+                <button class="cmd-copy" onclick="copyToClipboard('${browserCmd}', this)">Copy</button>
+            </div>
+        `;
+    }
 
     const metricsJson = profile.metrics ? JSON.stringify(profile.metrics, null, 2) : 'No metrics available';
     document.getElementById('profile-metrics-data').textContent = metricsJson;

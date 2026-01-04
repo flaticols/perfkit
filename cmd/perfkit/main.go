@@ -63,7 +63,8 @@ const quickstartGuide = `
 PERFKIT QUICKSTART
 ==================
 
-perfkit is a pprof profile collector and viewer for Go applications.
+perfkit is a performance data collector and viewer for Go pprof profiles 
+and k6 load test results.
 
 
 STEP 1: ENABLE PPROF IN YOUR GO APP
@@ -161,13 +162,40 @@ EXAMPLE: DEBUGGING MEMORY LEAK
     # See memory growth with exact deltas
 
 
+EXAMPLE: K6 LOAD TESTING
+-------------------------
+
+    # Terminal 1: Start perfkit
+    perfkit server
+
+    # Terminal 2: Run k6 test with summary export
+    k6 run --summary-export=baseline.json script.js
+
+    # Terminal 2: Ingest baseline
+    curl -X POST "http://localhost:8080/api/k6/ingest?session=api-test&name=baseline" \
+      --data-binary @baseline.json
+
+    # ... make code changes ...
+
+    # Terminal 2: Run k6 again
+    k6 run --summary-export=optimized.json script.js
+
+    # Terminal 2: Ingest optimized version
+    curl -X POST "http://localhost:8080/api/k6/ingest?session=api-test&name=optimized" \
+      --data-binary @optimized.json
+
+    # Open http://localhost:8080, select both k6 profiles, click Compare
+    # See performance improvements: P95, P99, RPS, error rate changes
+
+
 API ENDPOINTS
 -------------
 
-    POST /api/pprof/ingest?type=heap&session=test    Ingest profile
+    POST /api/pprof/ingest?type=heap&session=test    Ingest pprof profile
+    POST /api/k6/ingest?session=test&name=run1       Ingest k6 summary
     GET  /api/profiles                                List profiles
     GET  /api/profiles/{id}                           Get profile
-    GET  /api/profiles/{id}?raw=true                  Download raw pprof
+    GET  /api/profiles/{id}?raw=true                  Download raw data
     GET  /api/profiles/compare?ids=id1,id2            Compare profiles
 
 

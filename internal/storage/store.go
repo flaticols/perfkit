@@ -129,7 +129,7 @@ func (s *Store) GetProfile(ctx context.Context, id string) (*models.Profile, err
 
 func (s *Store) ListProfiles(ctx context.Context, limit, offset int, profileType, project string) ([]*models.Profile, error) {
 	ds := s.goqu.From("profiles").
-		Select("id", "created_at", "updated_at", "name", "profile_type", "project", "session", "tags", "source", "raw_size", "is_cumulative", "profile_time", "duration_ns", "total_samples", "total_value").
+		Select("id", "created_at", "updated_at", "name", "profile_type", "project", "session", "tags", "source", "raw_size", "is_cumulative", "profile_time", "duration_ns", "total_samples", "total_value", "k6_p95", "k6_p99", "k6_rps", "k6_error_rate", "k6_duration_ms").
 		Order(goqu.I("created_at").Desc()).
 		Limit(uint(limit)).
 		Offset(uint(offset))

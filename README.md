@@ -1,10 +1,11 @@
 # perfkit
 
-A pprof profile collector and viewer. Capture, store, and compare Go performance profiles.
+A performance data collector and viewer. Capture, store, and compare Go pprof profiles and k6 load test results.
 
 ## Features
 
 - **Collect profiles** from any Go application with pprof enabled
+- **k6 load test results** - Store and compare k6 test runs
 - **Web UI** for browsing and comparing profiles
 - **Session grouping** to organize related profiles
 - **Profile comparison** with delta visualization
@@ -108,6 +109,8 @@ perfkit capture http://localhost:6060 --server http://perfkit.prod:8080
 
 ## Profile Types
 
+### Go pprof Profiles
+
 | Type | Description | Behavior |
 |------|-------------|----------|
 | cpu | CPU usage sampling | Sampled over duration (default 30s) |
@@ -118,9 +121,39 @@ perfkit capture http://localhost:6060 --server http://perfkit.prod:8080
 | allocs | All allocations | Cumulative since start |
 | threadcreate | Thread creation | Snapshot |
 
+### k6 Load Test Results
+
+| Type | Description | Metrics |
+|------|-------------|---------|
+| k6 | Load test results | P50, P95, P99, RPS, Error Rate, Total Requests |
+
+## k6 Integration
+
+perfkit can store and compare k6 load test results.
+
+### Running k6 with perfkit
+
+```bash
+# Run k6 test and export summary
+k6 run --summary-export=summary.json script.js
+
+# Ingest into perfkit
+curl -X POST "http://localhost:8080/api/k6/ingest?session=load-test&name=baseline" \
+  -H "Content-Type: application/json" \
+  --data-binary @summary.json
+```
+
+### Compare k6 Test Runs
+
+Store multiple test runs with the same session name, then use the web UI to compare:
+- Response time improvements (P50, P95, P99)
+- Throughput changes (RPS)
+- Error rate variations
+- Request count differences
+
 ## API
 
-### Ingest Profile
+### Ingest pprof Profile
 
 ```
 POST /api/pprof/ingest
@@ -136,6 +169,21 @@ Query parameters:
 - `cumulative` - Mark as cumulative profile (true/false)
 
 Body: Raw pprof data (gzipped or plain)
+
+### Ingest k6 Summary
+
+```
+POST /api/k6/ingest
+```
+
+Query parameters:
+- `session` - Session name
+- `project` - Project name
+- `source` - Source identifier
+- `name` - Profile name
+- `tag` - Tags (can be repeated)
+
+Body: k6 summary JSON (from `--summary-export`)
 
 ### List Profiles
 
