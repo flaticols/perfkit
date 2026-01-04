@@ -81,7 +81,7 @@ func (s *Server) handlePprofIngest(w http.ResponseWriter, r *http.Request) {
 	if parsed.Metrics != nil {
 		metricsJSON, err := json.Marshal(parsed.Metrics)
 		if err == nil {
-			profile.Metrics = metricsJSON
+			profile.Metrics = models.NullableJSON(metricsJSON)
 		}
 	}
 
@@ -277,7 +277,7 @@ func (s *Server) handleK6Ingest(w http.ResponseWriter, r *http.Request) {
 		// Marshal metrics
 		metricsJSON, err := json.Marshal(parsed.Metrics)
 		if err == nil {
-			profile.Metrics = metricsJSON
+			profile.Metrics = models.NullableJSON(metricsJSON)
 		}
 	}
 

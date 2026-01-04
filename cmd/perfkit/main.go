@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -23,6 +24,8 @@ type Options struct {
 	Server     ServerCmd     `command:"server" alias:"s" description:"Start the collector server"`
 	Capture    CaptureCmd    `command:"capture" description:"Capture profiles from a pprof endpoint"`
 	Quickstart QuickstartCmd `command:"quickstart" alias:"q" description:"Show getting started guide"`
+	Session    SessionCmd    `command:"session" description:"Manage sessions"`
+	Get        GetCmd        `command:"get" description:"Get a profile from a session"`
 }
 
 type ServerCmd struct {
@@ -57,6 +60,39 @@ type QuickstartCmd struct{}
 func (c *QuickstartCmd) Execute(args []string) error {
 	fmt.Print(quickstartGuide)
 	return nil
+}
+
+type SessionCmd struct {
+	Ls       SessionLsCmd       `command:"ls" description:"List all sessions"`
+	Profiles SessionProfilesCmd `command:"profiles" description:"List profiles in a session"`
+}
+
+type SessionLsCmd struct{}
+
+func (c *SessionLsCmd) Execute(args []string) error {
+	return runSessionLs()
+}
+
+type SessionProfilesCmd struct {
+	Args struct {
+		SessionName string `positional-arg-name:"session" description:"Session name" required:"yes"`
+	} `positional-args:"yes" required:"yes"`
+}
+
+func (c *SessionProfilesCmd) Execute(args []string) error {
+	return runSessionProfiles(c.Args.SessionName)
+}
+
+type GetCmd struct {
+	Raw  bool `long:"raw" description:"Return raw profile data"`
+	Args struct {
+		SessionName string `positional-arg-name:"session" description:"Session name" required:"yes"`
+		ProfileID   string `positional-arg-name:"profile_id" description:"Profile ID" required:"yes"`
+	} `positional-args:"yes" required:"yes"`
+}
+
+func (c *GetCmd) Execute(args []string) error {
+	return runGet(c.Args.SessionName, c.Args.ProfileID, c.Raw)
 }
 
 const quickstartGuide = `
@@ -398,4 +434,96 @@ func formatSize(bytes int) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+func runSessionLs() error {
+	cfg, err := config.Load(opts.Config)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	store, err := storage.New(cfg.DBPath())
+	if err != nil {
+		return fmt.Errorf("open storage: %w", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	sessions, err := store.ListSessions(ctx)
+	if err != nil {
+		return fmt.Errorf("list sessions: %w", err)
+	}
+
+	if len(sessions) == 0 {
+		fmt.Println("No sessions found.")
+		return nil
+	}
+
+	for _, session := range sessions {
+		fmt.Println(session)
+	}
+	return nil
+}
+
+func runSessionProfiles(sessionName string) error {
+	cfg, err := config.Load(opts.Config)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	store, err := storage.New(cfg.DBPath())
+	if err != nil {
+		return fmt.Errorf("open storage: %w", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	profiles, err := store.ListProfilesBySession(ctx, sessionName)
+	if err != nil {
+		return fmt.Errorf("list profiles: %w", err)
+	}
+
+	if len(profiles) == 0 {
+		fmt.Printf("No profiles found in session %q.\n", sessionName)
+		return nil
+	}
+
+	for _, p := range profiles {
+		fmt.Printf("%s  %-12s  %s  %s\n", p.ID, p.ProfileType, p.CreatedAt.Format("2006-01-02 15:04:05"), p.Name)
+	}
+	return nil
+}
+
+func runGet(sessionName, profileID string, raw bool) error {
+	cfg, err := config.Load(opts.Config)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	store, err := storage.New(cfg.DBPath())
+	if err != nil {
+		return fmt.Errorf("open storage: %w", err)
+	}
+	defer store.Close()
+
+	ctx := context.Background()
+	profile, err := store.GetProfile(ctx, profileID)
+	if err != nil {
+		return fmt.Errorf("get profile: %w", err)
+	}
+
+	// Verify the profile belongs to the specified session
+	if profile.Session != sessionName {
+		return fmt.Errorf("profile %s does not belong to session %q", profileID, sessionName)
+	}
+
+	if raw {
+		_, err = os.Stdout.Write(profile.RawData)
+		return err
+	}
+
+	// Output profile metadata as JSON
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(profile)
 }
