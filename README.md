@@ -185,6 +185,14 @@ func main() {
 }
 ```
 
+## Screenshots
+
+<img width="719" height="581" alt="image" src="https://github.com/user-attachments/assets/fdba47b8-82d9-4dff-a2ed-00756a931a3a" />
+
+<img width="719" height="581" alt="image" src="https://github.com/user-attachments/assets/530a9c84-47e4-4c41-af47-79dc1b63602e" />
+
+<img width="719" height="581" alt="image" src="https://github.com/user-attachments/assets/a7f3f4e7-4f6b-4d74-8ea7-a1241eef9e37" />
+
 ## License
 
 MIT
